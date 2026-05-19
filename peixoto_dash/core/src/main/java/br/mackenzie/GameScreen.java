@@ -15,16 +15,14 @@ import java.util.Comparator;
 
 public class GameScreen implements Screen {
 
-    public static final float groundY = 75f;
+    public static final float GROUND_Y = 75f;
+
     private final PeixotoDash game;
     private final Viewport viewport;
 
     private final Texture bgTexture;
-    private final Texture[] obstacleTextures;
-    private final Texture[] runFrames;   
-    private final Texture[] sideFrames;  
 
-    private static final String[] obstaclePaths = {
+    private static final String[] OBS_PATHS = {
         "sprites/obstacles/bottle.png",
         "sprites/obstacles/can.png",
         "sprites/obstacles/lantern.png",
@@ -32,16 +30,19 @@ public class GameScreen implements Screen {
         "sprites/obstacles/wheels.png",
         "sprites/obstacles/bag.png"
     };
-    
-    private final Player player;
+    private final Texture[] obstacleTex;
+
+    private final Texture[] runFrames;   
+    private final Texture[] sideFrames;  
+    private final Player    player;
 
     private final Array<Obstacle> obstacles = new Array<Obstacle>();
     private float spawnTimer = 0f;
     private float spawnInterval = 2.0f;
 
-    private float speedMultiplier = 1.0f;
-    private static final float maxSpeedMultiplier = 3.2f;
-    private static final float speedRamp = 0.06f;
+    private float speedMul = 1.0f;
+    private static final float MAX_SPEED_MUL = 3.2f;
+    private static final float SPEED_RAMP = 0.06f;
 
     private int lives = 3;
     private int score = 0;
@@ -65,9 +66,9 @@ public class GameScreen implements Screen {
 
         bgTexture = new Texture(Gdx.files.internal("scene.png"));
 
-         obstacleTextures = new Texture[obstaclePaths.length];
-        for (int i = 0; i < obstaclePaths.length; i++)
-            obstacleTextures[i] = new Texture(Gdx.files.internal(obstaclePaths[i]));
+        obstacleTex = new Texture[OBS_PATHS.length];
+        for (int i = 0; i < OBS_PATHS.length; i++)
+            obstacleTex[i] = new Texture(Gdx.files.internal(OBS_PATHS[i]));
 
         runFrames  = new Texture[7];
         for (int i = 0; i < 7; i++)
@@ -108,8 +109,8 @@ public class GameScreen implements Screen {
     }
 
     private void update(float delta) {
-        speedMultiplier = Math.min(speedMultiplier + speedRamp * delta, maxSpeedMultiplier);
-        spawnInterval = Math.max(0.85f, 2.0f - (speedMultiplier - 1f) * 0.38f);
+        speedMul = Math.min(speedMul + SPEED_RAMP * delta, MAX_SPEED_MUL);
+        spawnInterval = Math.max(0.85f, 2.0f - (speedMul - 1f) * 0.38f);
 
         player.update(delta);
 
@@ -128,7 +129,7 @@ public class GameScreen implements Screen {
         Array<Obstacle> toRemove = new Array<Obstacle>();
         for (int i = 0; i < obstacles.size; i++) {
             Obstacle obs = obstacles.get(i);
-            obs.update(delta, speedMultiplier);
+            obs.update(delta, speedMul);
 
             if (!obs.isActive()) {
                 if (!obs.isScored()) { score += 30; obs.markScored(); }
@@ -143,6 +144,7 @@ public class GameScreen implements Screen {
                     obs.setActive(false);
                     toRemove.add(obs);
                     if (lives <= 0) {
+                        game.setScreen(new GameOverScreen(game, score));
                         dispose();
                         return;
                     }
@@ -154,8 +156,8 @@ public class GameScreen implements Screen {
 
     private void spawnObstacle() {
         int lane   = MathUtils.random(0, 2);
-        int texIdx = MathUtils.random(0, obstacleTextures.length - 1);
-        obstacles.add(new Obstacle(obstacleTextures[texIdx], lane));
+        int texIdx = MathUtils.random(0, obstacleTex.length - 1);
+        obstacles.add(new Obstacle(obstacleTex[texIdx], lane));
     }
 
     private void drawBackground() {
@@ -184,7 +186,7 @@ public class GameScreen implements Screen {
         font.draw(game.batch, hearts.toString(), 20f, PeixotoDash.VIRTUAL_HEIGHT - 60f);
 
         font.setColor(Color.YELLOW);
-        String vel = String.format("VEL: %.1fx", speedMultiplier);
+        String vel = String.format("VEL: %.1fx", speedMul);
         layout.setText(font, vel);
         font.draw(game.batch, vel,
             PeixotoDash.VIRTUAL_WIDTH - layout.width - 20f,
@@ -201,10 +203,9 @@ public class GameScreen implements Screen {
     @Override
     public void dispose() {
         bgTexture.dispose();
-        for (Texture t : obstacleTextures) if (t != null) t.dispose();
+        for (Texture t : obstacleTex) if (t != null) t.dispose();
         for (Texture t : runFrames)   if (t != null) t.dispose();
         for (Texture t : sideFrames)  if (t != null) t.dispose();
         font.dispose();
     }
 }
-

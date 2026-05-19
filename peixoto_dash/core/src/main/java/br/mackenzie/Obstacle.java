@@ -6,84 +6,85 @@ import com.badlogic.gdx.math.Rectangle;
 
 public class Obstacle {
 
-    public  static final float height = 150f;
+    public  static final float BASE_HEIGHT = 150f;
 
     // Perspective scale range
-    private static final float scale = 0.3f;
-    private static final float ease = 2.4f;   
+    private static final float MIN_SCALE = 0.3f;
+    private static final float EASE = 2.4f;   
 
     // Depth lifecycle
-    private static final float depth_lifecycle = 1.08f;
+    private static final float DEPTH_DESTROY  = 1.08f;
 
     // Collision band depth 
-    public  static final float collisionBand_low = 0.83f;
-    public  static final float collisionBand_higth = 1.02f;
+    public  static final float DEPTH_HIT_LO = 0.83f;
+    public  static final float DEPTH_HIT_HI = 1.02f;
 
     // Vanishing point in screen coordinates
-    public  static final float vanishing_pointX = PeixotoDash.VIRTUAL_WIDTH  * 0.5f;
-    public  static final float vanishing_pointY = PeixotoDash.VIRTUAL_HEIGHT * 0.85f;
+    public  static final float VP_X = PeixotoDash.VIRTUAL_WIDTH  * 0.5f;
+    public  static final float VP_Y = PeixotoDash.VIRTUAL_HEIGHT * 0.85f;
 
     // Lane X at the player plane 
-    public  static final float[] laneX = {
+    public  static final float[] LANE_X = {
         PeixotoDash.VIRTUAL_WIDTH * 0.20f,
         PeixotoDash.VIRTUAL_WIDTH * 0.53f,
         PeixotoDash.VIRTUAL_WIDTH * 0.8f
     };
 
     // Depth speed per second 
-    private static final float speed = 0.2f;
+    private static final float DEPTH_RATE = 0.2f;
 
-    private final Texture obstacleTexture;
-    private final float obstacleAspect;
+    private final Texture texture;
+    private final float aspect;
     private final int lane;
     private float depth = 0f;
     private boolean active = true;
     private boolean scored = false;
 
-    public Obstacle(Texture obstacleTexture, int lane) {
-        this.obstacleTexture = obstacleTexture;
+    public Obstacle(Texture texture, int lane) {
+        this.texture = texture;
         this.lane = lane;
-        this.obstacleAspect = (float) obstacleTexture.getWidth() / obstacleTexture.getHeight();
+        this.aspect = (float) texture.getWidth() / texture.getHeight();
     }
 
     public void update(float delta, float speedMultiplier) {
-        depth += speed * speedMultiplier * delta;
-        if (depth >= depth_lifecycle) active = false;
+        depth += DEPTH_RATE * speedMultiplier * delta;
+        if (depth >= DEPTH_DESTROY) active = false;
     }
 
     private float progress() {
         float t = Math.min(Math.max(depth, 0f), 1f);
-        return (float) Math.pow(t, ease);
+        return (float) Math.pow(t, EASE);
     }
 
     private float scale() {
-        return scale + (1f - scale) * progress();
+        return MIN_SCALE + (1f - MIN_SCALE) * progress();
     }
 
     private float screenCX() {
         float t = Math.min(Math.max(depth, 0f), 1f);
-        return vanishing_pointX + (laneX[lane] - vanishing_pointX) * t;
+        return VP_X + (LANE_X[lane] - VP_X) * t;
     }
 
     private float screenBottomY() {
         float t = Math.min(Math.max(depth, 0f), 1f);
-        return vanishing_pointY + (GameScreen.groundY - vanishing_pointY) * t;
+        return VP_Y + (GameScreen.GROUND_Y - VP_Y) * t;
     }
 
     public void draw(SpriteBatch batch) {
         if (!active) return;
         float s  = scale();
-        float h  = height * s;
-        float w  = h * obstacleAspect;
+        float h  = BASE_HEIGHT * s;
+        float w  = h * aspect;
         float cx = screenCX();
         float by = screenBottomY();
-        batch.draw(obstacleTexture, cx - w * 0.5f, by, w, h);
+        batch.draw(texture, cx - w * 0.5f, by, w, h);
     }
 
+    // Hitbox 
     public Rectangle getBounds() {
         float s  = scale();
-        float h  = height * s;
-        float w  = h * obstacleAspect;
+        float h  = BASE_HEIGHT * s;
+        float w  = h * aspect;
         float cx = screenCX();
         float by = screenBottomY();
         float sx = w * 0.20f;
@@ -103,7 +104,7 @@ public class Obstacle {
         return depth; 
     }
     public boolean isInHitZone() { 
-        return depth >= collisionBand_low && depth <= collisionBand_higth; 
+        return depth >= DEPTH_HIT_LO && depth <= DEPTH_HIT_HI; 
     }
     public boolean isScored() { 
         return scored; 

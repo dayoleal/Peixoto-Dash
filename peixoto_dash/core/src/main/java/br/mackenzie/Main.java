@@ -1,7 +1,5 @@
 package br.mackenzie;
 
-public class Main {
-    public static void main(String[] args) {
-        
-    }
+public class Main extends PeixotoDash {
+    // Entry point for LibGDX 
 }

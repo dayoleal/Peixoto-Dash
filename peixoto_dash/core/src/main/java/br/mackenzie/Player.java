@@ -7,9 +7,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 
 public class Player {
-    public  static final float playerHeight = 200f;
-    public  static final int laneCount = 3;
-    private static final float[] laneX = Obstacle.laneX;
+    public  static final float PLAYER_HEIGHT = 200f;
+    public  static final int LANE_COUNT = 3;
+
+    private static final float[] LANE_X = Obstacle.LANE_X;
 
     private final Texture[] runFrames;  
     private final Texture[] sideFrames;  
@@ -38,10 +39,10 @@ public class Player {
         this.sideFrames = sideFrames;
 
         float aspect = (float) runFrames[0].getWidth() / runFrames[0].getHeight();
-        this.height = playerHeight;
+        this.height = PLAYER_HEIGHT;
         this.width = height * aspect;
-        this.y = GameScreen.groundY;
-        this.x = laneX[currentLane] - width * 0.5f;
+        this.y = GameScreen.GROUND_Y;
+        this.x = LANE_X[currentLane] - width * 0.5f;
     }
 
     public void update(float delta) {
@@ -51,7 +52,7 @@ public class Player {
             if (left && currentLane > 0) {
                 targetLane = currentLane - 1;
                 startSideways(true);
-            } else if (right && currentLane < laneCount - 1) {
+            } else if (right && currentLane < LANE_COUNT - 1) {
                 targetLane = currentLane + 1;
                 startSideways(false);
             }
@@ -69,13 +70,13 @@ public class Player {
                 }
             }
 
-            float startX = laneX[currentLane] - width * 0.5f;
-            float endX   = laneX[targetLane]  - width * 0.5f;
+            float startX = LANE_X[currentLane] - width * 0.5f;
+            float endX   = LANE_X[targetLane]  - width * 0.5f;
             float t      = (float)(sideFrame + 1) / sideFrames.length;
             x = startX + (endX - startX) * t;
 
         } else {
-            x = laneX[currentLane] - width * 0.5f;
+            x = LANE_X[currentLane] - width * 0.5f;
         }
 
         runTimer += delta;
@@ -136,4 +137,3 @@ public class Player {
         return height; 
     }
 }
-
