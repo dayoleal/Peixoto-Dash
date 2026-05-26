@@ -1,16 +1,18 @@
 package br.mackenzie;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+
 import java.util.Comparator;
 
 public class GameScreen implements Screen {
@@ -18,6 +20,7 @@ public class GameScreen implements Screen {
     public static final float GROUND_Y = 75f;
 
     private final PeixotoDash game;
+    private final LevelConfig level;
     private final Viewport viewport;
 
     private final Texture bgTexture;
@@ -32,26 +35,34 @@ public class GameScreen implements Screen {
     };
     private final Texture[] obstacleTex;
 
-    private final Texture[] runFrames;   
-    private final Texture[] sideFrames;  
+    private final Texture[] runFrames;
+    private final Texture[] sideFrames;
     private final Player    player;
 
     private final Array<Obstacle> obstacles = new Array<Obstacle>();
     private float spawnTimer = 0f;
-    private float spawnInterval = 2.0f;
+    private float spawnInterval;
 
-    private float speedMul = 1.0f;
-    private static final float MAX_SPEED_MUL = 3.2f;
-    private static final float SPEED_RAMP = 0.06f;
+    private float speedMul;
+    private final float maxSpeedMul;
+    private final float speedRamp;
+    private final float baseSpawnInterval;
+    private final float minSpawnInterval;
 
     private int lives = 3;
     private int score = 0;
     private float scoreTimer = 0f;
+    private float levelTimer = 0f;
+
+    private boolean paused = false;
+    private boolean finishing = false;
 
     private final BitmapFont font;
     private final GlyphLayout layout;
 
     private final Array<Obstacle> drawList = new Array<Obstacle>();
+
+    private final RehabMetrics metrics;
 
     private static final Comparator<Obstacle> DEPTH_CMP = new Comparator<Obstacle>() {
         @Override
@@ -60,19 +71,22 @@ public class GameScreen implements Screen {
         }
     };
 
-    public GameScreen(PeixotoDash game) {
+    public GameScreen(PeixotoDash game, LevelConfig level) {
         this.game = game;
-        viewport  = new FitViewport(PeixotoDash.VIRTUAL_WIDTH, PeixotoDash.VIRTUAL_HEIGHT);
+        this.level = level;
+        this.metrics = new RehabMetrics(level);
 
-        bgTexture = new Texture(Gdx.files.internal("scene.png"));
+        viewport = new FitViewport(PeixotoDash.VIRTUAL_WIDTH, PeixotoDash.VIRTUAL_HEIGHT);
+
+        bgTexture = new Texture(Gdx.files.internal(level.backgroundAsset));
 
         obstacleTex = new Texture[OBS_PATHS.length];
         for (int i = 0; i < OBS_PATHS.length; i++)
             obstacleTex[i] = new Texture(Gdx.files.internal(OBS_PATHS[i]));
 
-        runFrames  = new Texture[7];
+        runFrames = new Texture[7];
         for (int i = 0; i < 7; i++)
-            runFrames[i]  = new Texture(Gdx.files.internal("sprites/running/"  + (i + 1) + ".png"));
+            runFrames[i] = new Texture(Gdx.files.internal("sprites/running/" + (i + 1) + ".png"));
 
         sideFrames = new Texture[6];
         for (int i = 0; i < 6; i++)
@@ -80,20 +94,36 @@ public class GameScreen implements Screen {
 
         player = new Player(runFrames, sideFrames);
 
-        font   = new BitmapFont();
+        font = new BitmapFont();
         font.getData().setScale(2.5f);
         layout = new GlyphLayout();
+
+        this.speedMul          = level.initialSpeedMul;
+        this.maxSpeedMul       = level.maxSpeedMul;
+        this.speedRamp         = level.speedRamp;
+        this.baseSpawnInterval = level.baseSpawnInterval;
+        this.minSpawnInterval  = level.minSpawnInterval;
+        this.spawnInterval     = baseSpawnInterval;
+
+        game.input.resetMetrics();
     }
 
-    @Override public void show(){}
-    @Override public void hide(){}
-    @Override public void pause(){}
+    @Override public void show()  {}
+    @Override public void hide()  {}
+    @Override public void pause() {}
     @Override public void resume(){}
     @Override public void resize(int w, int h) { viewport.update(w, h, true); }
 
     @Override
     public void render(float delta) {
-        update(delta);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P)
+         || Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            paused = !paused;
+        }
+
+        if (!paused && !finishing) {
+            update(delta);
+        }
 
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -105,18 +135,24 @@ public class GameScreen implements Screen {
             drawObstacles();
             player.draw(game.batch);
             drawHUD();
+            if (paused) drawPauseOverlay();
         game.batch.end();
     }
 
     private void update(float delta) {
-        speedMul = Math.min(speedMul + SPEED_RAMP * delta, MAX_SPEED_MUL);
-        spawnInterval = Math.max(0.85f, 2.0f - (speedMul - 1f) * 0.38f);
+        game.input.update(delta);
 
-        player.update(delta);
+        levelTimer += delta;
+
+        speedMul = Math.min(speedMul + speedRamp * delta, maxSpeedMul);
+        spawnInterval = Math.max(minSpawnInterval,
+                                 baseSpawnInterval - (speedMul - level.initialSpeedMul) * 0.38f);
+
+        player.update(delta, game.input);
 
         scoreTimer += delta;
         if (scoreTimer >= 0.5f) {
-            score      += 10;
+            score += 10;
             scoreTimer -= 0.5f;
         }
 
@@ -132,7 +168,11 @@ public class GameScreen implements Screen {
             obs.update(delta, speedMul);
 
             if (!obs.isActive()) {
-                if (!obs.isScored()) { score += 30; obs.markScored(); }
+                if (!obs.isScored()) {
+                    score += 30;
+                    obs.markScored();
+                    metrics.onObstacleAvoided();
+                }
                 toRemove.add(obs);
                 continue;
             }
@@ -140,18 +180,34 @@ public class GameScreen implements Screen {
             if (!player.isInvincible() && obs.isInHitZone()) {
                 if (obs.getLane() == player.getCurrentLane()) {
                     lives--;
+                    metrics.onCollision();
                     player.triggerInvincibility();
                     obs.setActive(false);
                     toRemove.add(obs);
                     if (lives <= 0) {
-                        game.setScreen(new GameOverScreen(game, score));
-                        dispose();
+                        finishLevel(false);
                         return;
                     }
                 }
             }
         }
         obstacles.removeAll(toRemove, true);
+
+        if (score >= level.targetScore) {
+            finishLevel(true);
+        }
+    }
+
+    private void finishLevel(boolean victory) {
+        if (finishing) return;
+        finishing = true;
+        metrics.score = score;
+        metrics.durationSec = levelTimer;
+        metrics.syncFromInput(game.input);
+
+        game.recordLevelMetrics(metrics);
+        game.setScreen(new ResultsScreen(game, metrics, victory));
+        dispose();
     }
 
     private void spawnObstacle() {
@@ -161,12 +217,10 @@ public class GameScreen implements Screen {
     }
 
     private void drawBackground() {
-        // Completely static — no scroll
         game.batch.draw(bgTexture, 0, 0, PeixotoDash.VIRTUAL_WIDTH, PeixotoDash.VIRTUAL_HEIGHT);
     }
 
     private void drawObstacles() {
-        // Copy, sort by depth (far first), then draw
         drawList.clear();
         drawList.addAll(obstacles);
         drawList.sort(DEPTH_CMP);
@@ -178,13 +232,20 @@ public class GameScreen implements Screen {
     private void drawHUD() {
         font.setColor(Color.WHITE);
         font.getData().setScale(2.5f);
-        font.draw(game.batch, "SCORE: " + score, 20f, PeixotoDash.VIRTUAL_HEIGHT - 15f);
+        font.draw(game.batch, "SCORE: " + score + " / " + level.targetScore,
+                  20f, PeixotoDash.VIRTUAL_HEIGHT - 15f);
 
         StringBuilder hearts = new StringBuilder("VIDAS: ");
         for (int i = 0; i < lives; i++) hearts.append("\u2665 ");
         for (int i = lives; i < 3;  i++) hearts.append("\u2661 ");
         font.draw(game.batch, hearts.toString(), 20f, PeixotoDash.VIRTUAL_HEIGHT - 60f);
 
+        font.getData().setScale(1.8f);
+        font.setColor(Color.CYAN);
+        font.draw(game.batch, "FASE " + level.number + " - " + level.name,
+                  20f, PeixotoDash.VIRTUAL_HEIGHT - 105f);
+
+        font.getData().setScale(2.5f);
         font.setColor(Color.YELLOW);
         String vel = String.format("VEL: %.1fx", speedMul);
         layout.setText(font, vel);
@@ -192,12 +253,63 @@ public class GameScreen implements Screen {
             PeixotoDash.VIRTUAL_WIDTH - layout.width - 20f,
             PeixotoDash.VIRTUAL_HEIGHT - 15f);
 
+        font.getData().setScale(1.4f);
+        font.setColor(game.input.getSource() == InputController.Source.KEYBOARD
+                      ? Color.LIGHT_GRAY : Color.LIME);
+        String inputState = describeInputState();
+        layout.setText(font, inputState);
+        font.draw(game.batch, inputState,
+            PeixotoDash.VIRTUAL_WIDTH - layout.width - 20f,
+            PeixotoDash.VIRTUAL_HEIGHT - 55f);
+
+        font.setColor(Color.WHITE);
+        String posture = String.format("Postura: %d%%",
+            (int)(game.input.getCenterRatio() * 100));
+        layout.setText(font, posture);
+        font.draw(game.batch, posture,
+            PeixotoDash.VIRTUAL_WIDTH - layout.width - 20f,
+            PeixotoDash.VIRTUAL_HEIGHT - 85f);
+
         font.getData().setScale(1.3f);
         font.setColor(new Color(1f, 1f, 1f, 0.65f));
-        font.draw(game.batch, "A/D ou <- -> para mover", 20f, 38f);
+        font.draw(game.batch,
+            "Incline a prancha (ou A/D) para trocar de faixa   |   [P] Pausar",
+            20f, 38f);
 
         font.getData().setScale(2.5f);
         font.setColor(Color.WHITE);
+    }
+
+    private String describeInputState() {
+        InputController.Direction d = game.input.getRawDirection();
+        String src;
+        switch (game.input.getSource()) {
+            case ARDUINO_SERIAL: src = "ARDUINO";  break;
+            case ARDUINO_WOKWI:  src = "WOKWI";    break;
+            default:             src = "TECLADO";
+        }
+        return src + " [" + d + "]";
+    }
+
+    private void drawPauseOverlay() {
+        font.getData().setScale(5f);
+        font.setColor(Color.WHITE);
+        layout.setText(font, "PAUSADO");
+        font.draw(game.batch, "PAUSADO",
+            (PeixotoDash.VIRTUAL_WIDTH - layout.width) / 2f,
+            PeixotoDash.VIRTUAL_HEIGHT / 2f + 40f);
+
+        font.getData().setScale(1.6f);
+        String hint = "[P] Continuar    [M] Voltar ao Menu";
+        layout.setText(font, hint);
+        font.draw(game.batch, hint,
+            (PeixotoDash.VIRTUAL_WIDTH - layout.width) / 2f,
+            PeixotoDash.VIRTUAL_HEIGHT / 2f - 20f);
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            game.setScreen(new MenuScreen(game));
+            dispose();
+        }
     }
 
     @Override

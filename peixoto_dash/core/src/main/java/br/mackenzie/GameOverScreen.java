@@ -21,8 +21,7 @@ public class GameOverScreen implements Screen {
         viewport = new FitViewport(PeixotoDash.VIRTUAL_WIDTH, PeixotoDash.VIRTUAL_HEIGHT);
     }
 
-    @Override
-    public void show() {}
+    @Override public void show() {}
 
     @Override
     public void render(float delta) {
@@ -35,7 +34,8 @@ public class GameOverScreen implements Screen {
         game.batch.draw(gameOverTexture, 0, 0, PeixotoDash.VIRTUAL_WIDTH, PeixotoDash.VIRTUAL_HEIGHT);
         game.batch.end();
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
+         || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             game.setScreen(new MenuScreen(game));
             dispose();
         }

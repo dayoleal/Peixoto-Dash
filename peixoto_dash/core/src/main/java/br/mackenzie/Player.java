@@ -1,7 +1,5 @@
 package br.mackenzie;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
@@ -12,19 +10,19 @@ public class Player {
 
     private static final float[] LANE_X = Obstacle.LANE_X;
 
-    private final Texture[] runFrames;  
-    private final Texture[] sideFrames;  
+    private final Texture[] runFrames;
+    private final Texture[] sideFrames;
 
     private int currentLane = 1;
-    private int targetLane = 1;
+    private int targetLane  = 1;
 
     private float runTimer = 0f;
     private float runSpeed = 0.05f;
     private int runFrame = 0;
 
-    private float sideTimer  = 0f;
-    private float sideSpeed  = 0.09f;  
-    private int sideFrame  = 0;
+    private float sideTimer = 0f;
+    private float sideSpeed = 0.09f;
+    private int sideFrame = 0;
     private boolean moving = false;
     private boolean movingLeft = false;
 
@@ -40,19 +38,17 @@ public class Player {
 
         float aspect = (float) runFrames[0].getWidth() / runFrames[0].getHeight();
         this.height = PLAYER_HEIGHT;
-        this.width = height * aspect;
+        this.width  = height * aspect;
         this.y = GameScreen.GROUND_Y;
         this.x = LANE_X[currentLane] - width * 0.5f;
     }
 
-    public void update(float delta) {
+    public void update(float delta, InputController input) {
         if (!moving) {
-            boolean left  = Gdx.input.isKeyJustPressed(Input.Keys.LEFT)  || Gdx.input.isKeyJustPressed(Input.Keys.A);
-            boolean right = Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D);
-            if (left && currentLane > 0) {
+            if (input.consumeLeft() && currentLane > 0) {
                 targetLane = currentLane - 1;
                 startSideways(true);
-            } else if (right && currentLane < LANE_COUNT - 1) {
+            } else if (input.consumeRight() && currentLane < LANE_COUNT - 1) {
                 targetLane = currentLane + 1;
                 startSideways(false);
             }
@@ -115,25 +111,11 @@ public class Player {
         return new Rectangle(x + sx, y + 10f, width - sx * 2f, height - 20f);
     }
 
-    public boolean isInvincible() { 
-        return invincibleTimer > 0f; 
-    }
-    public void triggerInvincibility() { 
-        invincibleTimer = INV_DURATION; 
-    }
-    public int getCurrentLane() { 
-        return currentLane; 
-    }
-    public float getX() { 
-        return x; 
-    }
-    public float getY() { 
-        return y; 
-    }
-    public float getWidth() { 
-        return width; 
-    }
-    public float getHeight() { 
-        return height; 
-    }
+    public boolean isInvincible()       { return invincibleTimer > 0f; }
+    public void triggerInvincibility()  { invincibleTimer = INV_DURATION; }
+    public int getCurrentLane()         { return currentLane; }
+    public float getX()                 { return x; }
+    public float getY()                 { return y; }
+    public float getWidth()             { return width; }
+    public float getHeight()            { return height; }
 }
