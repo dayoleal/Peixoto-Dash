@@ -10,19 +10,10 @@ public class PeixotoDash extends Game {
     public static final int VIRTUAL_WIDTH  = 1280;
     public static final int VIRTUAL_HEIGHT = 720;
 
-    // ===== Input =====
-    //   Arduino físico: USE_ARDUINO = true, USE_WOKWI = false, ARDUINO_PORT = "COM3"
-    //   Wokwi: USE_ARDUINO = true, USE_WOKWI = true
-    //   Sem hardware: USE_ARDUINO = false 
-
     public static final boolean USE_ARDUINO = false;
-    public static final boolean USE_WOKWI   = true;
     public static final String  ARDUINO_PORT = "COM3";
-    public static final String  WOKWI_HOST  = "localhost";
-    public static final int     WOKWI_PORT  = 8080;
 
     public InputController input;
-    private ArduinoReaderThread arduinoReader;
 
     public int highestUnlockedLevel = 1;
 
@@ -33,16 +24,9 @@ public class PeixotoDash extends Game {
         batch = new SpriteBatch();
 
         if (USE_ARDUINO) {
-            if (USE_WOKWI) {
-                arduinoReader = ArduinoReaderThread.forWokwi(WOKWI_HOST, WOKWI_PORT);
-                input = new InputController(InputController.Source.ARDUINO_WOKWI, arduinoReader);
-            } else {
-                arduinoReader = new ArduinoReaderThread(ARDUINO_PORT);
-                input = new InputController(InputController.Source.ARDUINO_SERIAL, arduinoReader);
-            }
-            arduinoReader.start();
+            input = new InputController(ARDUINO_PORT);
         } else {
-            input = new InputController(); 
+            input = new InputController(ARDUINO_PORT);
         }
 
         setScreen(new MenuScreen(this));
@@ -58,10 +42,6 @@ public class PeixotoDash extends Game {
 
     @Override
     public void dispose() {
-        if (arduinoReader != null) {
-            arduinoReader.stopReading();
-            try { arduinoReader.join(500); } catch (InterruptedException ignored) {}
-        }
         batch.dispose();
     }
 }

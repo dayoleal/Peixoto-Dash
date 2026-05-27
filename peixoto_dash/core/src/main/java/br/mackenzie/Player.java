@@ -43,6 +43,8 @@ public class Player {
         this.x = LANE_X[currentLane] - width * 0.5f;
     }
 
+
+    // Atualiza a posição do jogador
     public void update(float delta, InputController input) {
         if (!moving) {
             if (input.consumeLeft() && currentLane > 0) {
@@ -91,6 +93,7 @@ public class Player {
         sideTimer  = 0f;
     }
 
+    // Desenha o player e reage a invicibilidade (Após colisão)
     public void draw(SpriteBatch batch) {
         if (invincibleTimer > 0f && (int)(invincibleTimer * 8) % 2 == 0) return;
 

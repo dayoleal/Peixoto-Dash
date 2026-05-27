@@ -41,7 +41,7 @@ public class LevelConfig {
         "scene.png",
         1.0f, 1.6f, 0.03f,
         2.4f, 1.4f,
-        300, 45f, 0.50f
+        500, 45f, 0.50f
     );
 
     public static final LevelConfig LEVEL_2 = new LevelConfig(
@@ -50,7 +50,7 @@ public class LevelConfig {
         "scene.png",
         1.4f, 2.4f, 0.05f,
         1.8f, 1.0f,
-        500, 60f, 0.55f
+        700, 60f, 0.55f
     );
 
     public static final LevelConfig LEVEL_3 = new LevelConfig(
@@ -59,7 +59,7 @@ public class LevelConfig {
         "scene.png",
         1.8f, 3.2f, 0.07f,
         1.4f, 0.75f,
-        700, 75f, 0.60f
+        1200, 75f, 0.60f
     );
 
     public static final LevelConfig[] ALL = { LEVEL_1, LEVEL_2, LEVEL_3 };

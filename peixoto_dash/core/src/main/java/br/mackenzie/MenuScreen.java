@@ -21,6 +21,7 @@ public class MenuScreen implements Screen {
 
     public MenuScreen(PeixotoDash game) {
         this.game = game;
+        
         menuTexture = new Texture(Gdx.files.internal("startMenu.png"));
         viewport = new FitViewport(PeixotoDash.VIRTUAL_WIDTH, PeixotoDash.VIRTUAL_HEIGHT);
 
@@ -33,9 +34,11 @@ public class MenuScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        // Limpa a tela
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        // Desenha a tela do Menu principal
         viewport.apply();
         game.batch.setProjectionMatrix(viewport.getCamera().combined);
         game.batch.begin();
@@ -43,12 +46,8 @@ public class MenuScreen implements Screen {
         game.batch.draw(menuTexture, 0, 0,
                         PeixotoDash.VIRTUAL_WIDTH, PeixotoDash.VIRTUAL_HEIGHT);
 
-        String inputLabel = "Controle: " + describeInput();
-        Color statusColor = (game.input.getSource() == InputController.Source.KEYBOARD)
-                          ? Color.YELLOW
-                          : Color.LIME;
-        font.setColor(statusColor);
-        font.draw(game.batch, inputLabel, 20f, 40f);
+        font.setColor(Color.WHITE);
+        font.draw(game.batch, "SPACE - Iniciar", 20f, 40f);
 
         font.setColor(Color.WHITE);
         font.getData().setScale(1.2f);
@@ -59,15 +58,6 @@ public class MenuScreen implements Screen {
         game.batch.end();
 
         handleInput();
-    }
-
-    private String describeInput() {
-        switch (game.input.getSource()) {
-            case ARDUINO_SERIAL: return "Arduino (serial)";
-            case ARDUINO_WOKWI:  return "Arduino via Wokwi (TCP)";
-            case KEYBOARD:
-            default:             return "Teclado (modo dev)";
-        }
     }
 
     private void handleInput() {

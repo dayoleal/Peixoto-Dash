@@ -33,6 +33,7 @@ public class GameScreen implements Screen {
         "sprites/obstacles/wheels.png",
         "sprites/obstacles/bag.png"
     };
+
     private final Texture[] obstacleTex;
 
     private final Texture[] runFrames;
@@ -40,6 +41,8 @@ public class GameScreen implements Screen {
     private final Player    player;
 
     private final Array<Obstacle> obstacles = new Array<Obstacle>();
+    private final Array<Obstacle> drawList = new Array<Obstacle>();
+
     private float spawnTimer = 0f;
     private float spawnInterval;
 
@@ -59,8 +62,6 @@ public class GameScreen implements Screen {
 
     private final BitmapFont font;
     private final GlyphLayout layout;
-
-    private final Array<Obstacle> drawList = new Array<Obstacle>();
 
     private final RehabMetrics metrics;
 
@@ -112,6 +113,7 @@ public class GameScreen implements Screen {
     @Override public void hide()  {}
     @Override public void pause() {}
     @Override public void resume(){}
+
     @Override public void resize(int w, int h) { viewport.update(w, h, true); }
 
     @Override
@@ -163,6 +165,7 @@ public class GameScreen implements Screen {
         }
 
         Array<Obstacle> toRemove = new Array<Obstacle>();
+
         for (int i = 0; i < obstacles.size; i++) {
             Obstacle obs = obstacles.get(i);
             obs.update(delta, speedMul);
@@ -254,13 +257,7 @@ public class GameScreen implements Screen {
             PeixotoDash.VIRTUAL_HEIGHT - 15f);
 
         font.getData().setScale(1.4f);
-        font.setColor(game.input.getSource() == InputController.Source.KEYBOARD
-                      ? Color.LIGHT_GRAY : Color.LIME);
-        String inputState = describeInputState();
-        layout.setText(font, inputState);
-        font.draw(game.batch, inputState,
-            PeixotoDash.VIRTUAL_WIDTH - layout.width - 20f,
-            PeixotoDash.VIRTUAL_HEIGHT - 55f);
+        font.setColor(Color.WHITE);
 
         font.setColor(Color.WHITE);
         String posture = String.format("Postura: %d%%",
@@ -278,17 +275,6 @@ public class GameScreen implements Screen {
 
         font.getData().setScale(2.5f);
         font.setColor(Color.WHITE);
-    }
-
-    private String describeInputState() {
-        InputController.Direction d = game.input.getRawDirection();
-        String src;
-        switch (game.input.getSource()) {
-            case ARDUINO_SERIAL: src = "ARDUINO";  break;
-            case ARDUINO_WOKWI:  src = "WOKWI";    break;
-            default:             src = "TECLADO";
-        }
-        return src + " [" + d + "]";
     }
 
     private void drawPauseOverlay() {

@@ -6,10 +6,8 @@ import com.badlogic.gdx.Input;
 public class InputController {
 
     public enum Direction { LEFT, CENTER, RIGHT }
-    public enum Source { KEYBOARD, ARDUINO_SERIAL, ARDUINO_WOKWI }
 
-    private final ArduinoReaderThread arduinoReader; 
-    private final Source source;
+    private ArduinoSerial arduino; 
 
     private Direction currentDirection = Direction.CENTER;
 
@@ -20,24 +18,27 @@ public class InputController {
     private float totalActiveTime = 0f;
     private int directionChanges = 0;
 
-    public InputController(Source source, ArduinoReaderThread reader) {
-        this.source = source;
-        this.arduinoReader = reader;
-    }
-
-    public InputController() {
-        this(Source.KEYBOARD, null);
+    public InputController(String port) {
+        try {
+            arduino = new ArduinoSerial(port);
+        } catch (Exception e) {
+            System.out.println("Arduino não conectado, usando teclado.");
+            arduino = null;
+        }
     }
 
     public void update(float delta) {
-        Direction next = readRawDirection();
 
+        Direction next = readDirection();
+
+        // Contador do tempo de movimento
         if (next == Direction.CENTER) {
             totalCenterTime += delta;
         } else {
             totalActiveTime += delta;
         }
 
+        // Contador de mudança de direção
         if (next != currentDirection) {
             directionChanges++;
 
@@ -46,6 +47,36 @@ public class InputController {
 
             currentDirection = next;
         }
+    }
+
+    private Direction readDirection() {
+        // Leitor de data do Arduino
+        Direction dir = Direction.CENTER;
+
+        if (arduino != null) {
+            String data = arduino.read();
+
+            if (data != null) {
+                data = data.trim().toUpperCase();
+
+                if (data.contains("L")) dir = Direction.LEFT;
+                else if (data.contains("R")) dir = Direction.RIGHT;
+            }
+        }
+
+        // Teclado
+        boolean leftKey =
+            Gdx.input.isKeyPressed(Input.Keys.A) ||
+            Gdx.input.isKeyPressed(Input.Keys.LEFT);
+
+        boolean rightKey =
+                Gdx.input.isKeyPressed(Input.Keys.D) ||
+                Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+
+        if (leftKey) dir = Direction.LEFT;
+        else if (rightKey) dir = Direction.RIGHT;
+
+        return dir;
     }
 
     public boolean consumeLeft() {
@@ -60,17 +91,14 @@ public class InputController {
 
     public Direction getRawDirection() { return currentDirection; }
 
-    public Source getSource() { return source; }
-
-
-    public float getTotalCenterTime() { return totalCenterTime; }
-    public float getTotalActiveTime() { return totalActiveTime; }
-    public int   getDirectionChanges() { return directionChanges; }
-
     public float getCenterRatio() {
         float total = totalCenterTime + totalActiveTime;
         return total > 0f ? totalCenterTime / total : 0f;
     }
+
+    public float getTotalCenterTime() { return totalCenterTime; }
+    public float getTotalActiveTime() { return totalActiveTime; }
+    public int   getDirectionChanges() { return directionChanges; }
 
     public void resetMetrics() {
         totalCenterTime = 0f;
@@ -79,32 +107,5 @@ public class InputController {
         pendingLeft = false;
         pendingRight = false;
         currentDirection = Direction.CENTER;
-    }
-
-    private Direction readRawDirection() {
-        switch (source) {
-            case ARDUINO_SERIAL:
-            case ARDUINO_WOKWI:
-                if (arduinoReader == null) return Direction.CENTER;
-                String data = arduinoReader.getLastData();
-                if (data == null) return Direction.CENTER;
-            
-                String d = data.trim().toUpperCase();
-                if (d.contains("LEFT")  || d.contains("-1")) return Direction.LEFT;
-                if (d.contains("RIGHT") || d.endsWith(": 1") || d.endsWith(":1")) return Direction.RIGHT;
-                return Direction.CENTER;
-
-            case KEYBOARD:
-            default:
-                
-                boolean leftJust  = Gdx.input.isKeyJustPressed(Input.Keys.LEFT)
-                                 || Gdx.input.isKeyJustPressed(Input.Keys.A);
-                boolean rightJust = Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)
-                                 || Gdx.input.isKeyJustPressed(Input.Keys.D);
-                
-                if (leftJust)  return Direction.LEFT;
-                if (rightJust) return Direction.RIGHT;
-                return Direction.CENTER;
-        }
     }
 }

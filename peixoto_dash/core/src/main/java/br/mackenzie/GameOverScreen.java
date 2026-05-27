@@ -25,15 +25,18 @@ public class GameOverScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        // Limpa a tela
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        // Desenha a tela de Game Over
         viewport.apply();
         game.batch.setProjectionMatrix(viewport.getCamera().combined);
         game.batch.begin();
         game.batch.draw(gameOverTexture, 0, 0, PeixotoDash.VIRTUAL_WIDTH, PeixotoDash.VIRTUAL_HEIGHT);
         game.batch.end();
 
+        // Controle de continuação do jogo
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
          || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             game.setScreen(new MenuScreen(game));
@@ -42,6 +45,7 @@ public class GameOverScreen implements Screen {
     }
 
     @Override public void resize(int w, int h) { viewport.update(w, h, true); }
+    
     @Override public void pause() {}
     @Override public void resume() {}
     @Override public void hide() {}
